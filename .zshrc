@@ -86,7 +86,7 @@ function _execute_if_file_exists() {
 ssh-add ~/.ssh/id_rsa 2>/dev/null
 HOMEBREW_BIN_DIR=/usr/local/bin:/usr/local/sbin
 NODE_MODULES=./node_modules/.bin
-LOCAL_BIN_DIR=$HOME/local/bin
+LOCAL_BIN_DIR=$HOME/.local/bin:$HOME/local/bin
 PLATFORM=$(uname)
 
 if [[ "$PLATFORM" == "Darwin" ]]; then
