@@ -159,3 +159,5 @@ _execute_if_file_exists "$HOME"/.fzf_zsh
 _execute_if_file_exists "$HOME"/.zshrc_local
 
 # zprof
+
+[ -f ~/.fzf.zsh ] && source ~/.fzf.zsh
