@@ -262,8 +262,13 @@ clicking back into vim is enough; no restart.
 
 Diffs page through [delta](https://github.com/dandavison/delta): syntax
 highlighted, with line numbers, moved lines distinguished from added and removed
-ones, and `n`/`N` to jump between files. It follows the terminal background, so
-it matches bat, vim and Ghostty.
+ones, and `n`/`N` to jump between files.
+
+Its theme follows the macOS appearance, matching vim, bat and Ghostty. `.zshrc`
+reads the appearance at startup and exports `DELTA_FEATURES=light-mode` or
+`dark-mode`, selecting a `[delta "..."]` section in `.gitconfig`. After
+switching the system theme, new shells pick it up; run `retheme` in one that is
+already open.
 
 Behaviour worth knowing, since it differs from stock git:
 
@@ -339,6 +344,25 @@ entry:
 ```bash
 export PATH="/opt/homebrew/opt/curl/bin:$PATH"
 ```
+
+**Diffs are washed out / low contrast.** delta's `light`/`dark` setting only
+controls its own `+`/`-` chrome; the syntax theme is separate and will happily
+paint dark-theme colors onto a light background. Both have to agree, which is
+what the `light-mode` and `dark-mode` features in `.gitconfig` do. Check with:
+
+```bash
+echo $DELTA_FEATURES                    # should match your system appearance
+delta --show-config | grep syntax-theme # writes to stderr, not stdout
+```
+
+Two traps worth knowing. `DELTA_FEATURES` must not have a leading `+` — that
+form *appends* to the features already set in `.gitconfig`, so a light default
+plus a dark override sets both and delta exits with `--light and --dark cannot
+be used together`. And `BAT_THEME` must not be set to `auto:system`: delta
+bundles an older bat that rejects it with `[bat warning]: Unknown theme`, then
+silently falls back to a dark default. bat defaults to auto on its own, so
+leaving `BAT_THEME` unset and setting only `BAT_THEME_LIGHT`/`BAT_THEME_DARK`
+keeps both tools happy.
 
 **`ls` hangs.** `ls`/`ll`/`la`/`lt` are shell *functions*, not aliases, because
 eza 0.23.5 hangs forever when run with no path argument — `eza .` returns

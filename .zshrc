@@ -114,7 +114,9 @@ if _has bat; then
     # Catppuccin ships with bat, so this matches vim and Ghostty. auto:system
     # reads the macOS appearance rather than sniffing terminal colors, which is
     # the same signal .vimrc uses.
-    export BAT_THEME="auto:system"
+    # BAT_THEME is deliberately NOT set: bat already defaults to auto, and the
+    # older bat that delta bundles rejects the newer "auto:system" spelling with
+    # `[bat warning]: Unknown theme`, silently falling back to a dark default.
     export BAT_THEME_DARK="Catppuccin Mocha"
     export BAT_THEME_LIGHT="Catppuccin Latte"
     export MANPAGER="sh -c 'sed -e s/.\\\\x08//g | bat -l man -p'"
@@ -180,6 +182,23 @@ cdr() {
 gdmn() {
     git diff "$(git rev-parse --abbrev-ref origin/HEAD 2>/dev/null || echo master)" --name-only
 }
+
+# delta --- {{{
+# Pick delta's theme from the macOS appearance, matching .vimrc. Evaluated once
+# per shell; after switching the system theme, new terminals pick it up, or run
+# `retheme` in an existing one.
+retheme() {
+    # No leading "+": that form *appends* to the features set in .gitconfig,
+    # so a light default plus a dark override would set both and delta exits
+    # with "--light and --dark cannot be used together". Bare names replace.
+    if defaults read -g AppleInterfaceStyle >/dev/null 2>&1; then
+        export DELTA_FEATURES="dark-mode"
+    else
+        export DELTA_FEATURES="light-mode"
+    fi
+}
+_has delta && retheme
+# }}}
 
 _has lazygit && alias lg="lazygit"
 

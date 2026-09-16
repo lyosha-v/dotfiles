@@ -31,8 +31,20 @@
 	navigate = true
 	line-numbers = true
 	hyperlinks = true
-	# Follows the terminal background, same as bat, vim and Ghostty do.
-	detect-dark-light = auto
+	# Light is the fallback when nothing sets DELTA_FEATURES -- a dark theme on a
+	# light terminal is unreadable, whereas the reverse merely looks flat.
+	features = light-mode
+
+# .zshrc exports DELTA_FEATURES=+dark-mode or +light-mode from the macOS
+# appearance, the same signal .vimrc uses. An explicit syntax-theme is required:
+# delta's dark/light setting only controls its own +/- chrome, and will happily
+# paint a dark syntax theme onto a light background.
+[delta "light-mode"]
+	light = true
+	syntax-theme = Catppuccin Latte
+
+[delta "dark-mode"]
+	dark = true
 	syntax-theme = Catppuccin Mocha
 
 [diff]
