@@ -73,6 +73,11 @@ landed in `$HOME` only, the repo silently drifted years out of date, and
 `git status` stayed clean the whole time. If you ever see this repo disagree
 with `$HOME`, that's the failure mode to suspect.
 
+```
+./install.sh                  link every tracked dotfile into $HOME (default)
+./install.sh adopt FILE...    move FILE into the repo, then link it back
+```
+
 The script is safe to re-run:
 
 - a correct symlink is left alone (`ok`)
@@ -246,11 +251,18 @@ needs `-c commit.gpgsign=false`, or an unlocked agent.
 ## Adding a new dotfile
 
 ```bash
-cd path/to/dotfiles
-mv ~/.newrc .
-./install.sh          # links it, prints `link .newrc`
+./install.sh adopt ~/.newrc
 git add .newrc && git commit
 ```
+
+`adopt` moves the file into the repo and links it straight back, so the copy you
+were already using stays the one in effect — nothing to reconcile afterwards. It
+refuses rather than clobbers if the repo already has a file by that name, and
+tells you to diff the two.
+
+The plain `./install.sh` can't do this for you, because it only knows about
+files already in the repo; adopting runs the other direction and needs to be
+told which file you mean.
 
 `install.sh` only walks the top level (`find . -maxdepth 1`). A file that
 belongs under `~/.config/…` needs either a nested-path-aware installer or
