@@ -25,16 +25,16 @@ zsh + tmux + neovim, on macOS / Apple Silicon.
 ## Installation
 
 ```bash
-git clone git@github.com:lyosha-v/dotfiles.git ~/Repos/dotfiles
-cd ~/Repos/dotfiles
+git clone git@github.com:lyosha-v/dotfiles.git
+cd dotfiles
 ./install.sh
 ```
 
 Then open a new terminal.
 
-The repo can live anywhere — `install.sh` resolves its own location — but the
-symlinks it creates point at wherever the repo sat when you ran it, so moving
-the repo afterwards means re-running the script.
+Clone it wherever you like — `install.sh` resolves its own location. The
+symlinks it creates do point at wherever the repo sat when you ran it, so
+moving the repo afterwards means re-running the script.
 
 ### Prerequisites
 
@@ -61,7 +61,7 @@ After the first launch, two plugin managers need a one-time nudge:
 `install.sh` **symlinks** every top-level dotfile into `$HOME`:
 
 ```
-~/.zshrc  ->  ~/Repos/dotfiles/.zshrc
+~/.zshrc  ->  <repo>/.zshrc
 ```
 
 so editing either path edits the same file, and `git status` in this repo is an
@@ -246,8 +246,8 @@ needs `-c commit.gpgsign=false`, or an unlocked agent.
 ## Adding a new dotfile
 
 ```bash
-mv ~/.newrc ~/Repos/dotfiles/.newrc
-cd ~/Repos/dotfiles
+cd path/to/dotfiles
+mv ~/.newrc .
 ./install.sh          # links it, prints `link .newrc`
 git add .newrc && git commit
 ```
