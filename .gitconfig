@@ -1,22 +1,31 @@
+[gpg]
+	format = ssh
+[gpg "ssh"]
+	program = /Applications/1Password.app/Contents/MacOS/op-ssh-sign
+[commit]
+	gpgsign = true
+[user]
+	signingkey = ssh-ed25519 AAAAC3NzaC1lZDI1NTE5AAAAIIEzczfvVF132fCr1+p7iUrKqjBGVPUJP/XgLcITS+e/
+
 [alias]
-        lg = "log --graph --format='format:%w(80)%Cgreen%h%Creset %Cred%d%Creset%n%s%n%Cgreen%an%Creset (%ar)%n'"
-        co = checkout
-        ci = commit
-        st = status
-        br = branch
-        dt = difftool
+	lg = "log --graph --format='format:%w(80)%Cgreen%h%Creset %Cred%d%Creset%n%s%n%Cgreen%an%Creset (%ar)%n'"
+	co = checkout
+	ci = commit
+	st = status
+	br = branch
+	dt = difftool
 
 [diff]
-    tool = vimdiff
+	tool = vimdiff
 
 [color]
-    ui = auto
+	ui = auto
 
 [core]
-    editor = vim
+	editor = vim
 
 [push]
-    default = current
+	default = current
 
 [merge]
-    tool = vimdiff
+	tool = vimdiff

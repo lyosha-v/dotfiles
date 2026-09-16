@@ -1,58 +1,21 @@
-# zmodload zsh/zprof
+export NVM_DIR="$HOME/.nvm"
+[ -s "/opt/homebrew/opt/nvm/nvm.sh" ] && \. "/opt/homebrew/opt/nvm/nvm.sh"  # This loads nvm
+[ -s "/opt/homebrew/opt/nvm/etc/bash_completion.d/nvm" ] && \. "/opt/homebrew/opt/nvm/etc/bash_completion.d/nvm"  # This loads nvm bash_completion
+export PATH="$HOME/.local/bin:$PATH"
+export RIPGREP_CONFIG_PATH="$HOME/.config/ripgrep/config"
+
+alias vim=nvim
+alias vi=nvim
 
 # Path to your oh-my-zsh configuration.
 ZSH=$HOME/.oh-my-zsh
 
 # Set name of the theme to load.
-# Look in ~/.oh-my-zsh/themes/
-# Optionally, if you set this to "random", it'll load a random theme each
-# time that oh-my-zsh is loaded.
 ZSH_THEME="robbyrussell"
-# ZSH_THEME="gentoo"
 
-# Example aliases
-# alias zshconfig="mate ~/.zshrc"
-# alias ohmyzsh="mate ~/.oh-my-zsh"
-
-# Set to this to use case-sensitive completion
-# CASE_SENSITIVE="true"
-
-# Uncomment this to disable bi-weekly auto-update checks
-# DISABLE_AUTO_UPDATE="true"
-
-# Uncomment to change how often before auto-updates occur? (in days)
-# export UPDATE_ZSH_DAYS=13
-
-# Uncomment following line if you want to disable colors in ls
-# DISABLE_LS_COLORS="true"
-
-# Uncomment following line if you want to disable autosetting terminal title.
-# DISABLE_AUTO_TITLE="true"
-
-# Uncomment following line if you want to disable command autocorrection
-# DISABLE_CORRECTION="true"
-
-# Uncomment following line if you want red dots to be displayed while waiting for completion
-#  COMPLETION_WAITING_DOTS="true"
-
-# Uncomment following line if you want to disable marking untracked files under
-# VCS as dirty. This makes repository status check for large repositories much,
-# much faster.
-# DISABLE_UNTRACKED_FILES_DIRTY="true"
-
-# Which plugins would you like to load? (plugins can be found in ~/.oh-my-zsh/plugins/*)
-# Custom plugins may be added to ~/.oh-my-zsh/custom/plugins/
-# Example format: plugins=(rails git textmate ruby lighthouse)
-# source /usr/local/share/zsh-syntax-highlighting/zsh-syntax-highlighting.zsh
-
-# plugins=(git sublime npm node brew jsontools zsh-syntax-highlighting mvn jira)
-plugins=(git sublime npm node brew jsontools mvn jira)
-
-# ZSH_HIGHLIGHT_HIGHLIGHTERS=(main brackets cursor line pattern root)
+plugins=(git sublime npm node brew jsontools)
 
 source $ZSH/oh-my-zsh.sh
-
-# Customize to your needs...
 
 # Returns whether the given command is executable or aliased.
 RPROMPT="<- $(date '+%H:%M %d/%m/%y')"
@@ -83,38 +46,13 @@ function _execute_if_file_exists() {
     fi
 }
 
-ssh-add ~/.ssh/id_rsa 2>/dev/null
-HOMEBREW_BIN_DIR=/usr/local/bin:/usr/local/sbin
 NODE_MODULES=./node_modules/.bin
-LOCAL_BIN_DIR=$HOME/.local/bin:$HOME/local/bin
-PLATFORM=$(uname)
 
-if [[ "$PLATFORM" == "Darwin" ]]; then
+if [[ "$(uname)" == "Darwin" ]]; then
     source $(brew --prefix)/etc/profile.d/z.sh
-    export PATH=$HOMEBREW_BIN_DIR:$PATH
-    export NVM_DIR=~/.nvm
-    export NVM_PREFIX=$(brew --prefix nvm)
-
-    # see http://www.growingwiththeweb.com/2018/01/slow-nvm-init.html
-    # Defer initialization of nvm until nvm, node or a node-dependent command is
-    # run. Ensure this block is only run once if .bashrc gets sourced multiple times
-    # by checking whether __init_nvm is a function.
-    if [ -s "$NVM_PREFIX/nvm.sh" ] && [ ! "$(whence -w __init_nvm)" = function ]; then
-      [ -s "$NVM_PREFIX/bash_completion" ] && . "$NVM_PREFIX/bash_completion"
-      declare -a __node_commands=('nvm' 'node' 'npm' 'yarn' 'gulp' 'grunt' 'webpack')
-      function __init_nvm() {
-        for i in "${__node_commands[@]}"; do unalias $i; done
-        source "$NVM_PREFIX"/nvm.sh
-        unset __node_commands
-        unset -f __init_nvm
-      }
-      for i in "${__node_commands[@]}"; do alias $i='__init_nvm && '$i; done
-    fi
-else
-    echo Unknown platform $PLATFORM
 fi
 
-export PATH=$LOCAL_BIN_DIR:$PATH:$NODE_MODULES
+export PATH="$PATH:$NODE_MODULES"
 
 export EDITOR="vim"
 
@@ -127,9 +65,9 @@ alias gdmn="git diff master --name-only"
 bindkey "^Q" push-input
 
 # fzf via Homebrew
-if [ -e /usr/local/opt/fzf/shell/completion.zsh ]; then
-    source /usr/local/opt/fzf/shell/key-bindings.zsh
-    source /usr/local/opt/fzf/shell/completion.zsh
+if [ -e /opt/homebrew/opt/fzf/shell/completion.zsh ]; then
+    source /opt/homebrew/opt/fzf/shell/key-bindings.zsh
+    source /opt/homebrew/opt/fzf/shell/completion.zsh
 fi
 
 # fzf via local installation
@@ -152,12 +90,7 @@ if _has fzf && _has rg; then
     '
 fi
 
-    # --color fg:-1,bg:-1,hl:33,fg+:235,bg+:254,hl+:33
-    # --color info:136,prompt:136,pointer:234,marker:234,spinner:136
-
 _execute_if_file_exists "$HOME"/.fzf_zsh
 _execute_if_file_exists "$HOME"/.zshrc_local
-
-# zprof
 
 [ -f ~/.fzf.zsh ] && source ~/.fzf.zsh

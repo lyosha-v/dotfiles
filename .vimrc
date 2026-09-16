@@ -8,14 +8,19 @@ Plug 'tmux-plugins/vim-tmux-focus-events'
 Plug 'pangloss/vim-javascript'
 Plug 'nathanaelkane/vim-indent-guides'
 Plug 'airblade/vim-gitgutter'
-Plug 'dracula/vim', { 'as': 'dracula' }
+Plug 'catppuccin/vim', { 'as': 'catppuccin' }
 Plug 'editorconfig/editorconfig-vim'
-Plug 'flowtype/vim-flow'
+Plug 'leafgarland/typescript-vim'
 Plug 'heavenshell/vim-jsdoc'
 Plug 'junegunn/fzf', { 'dir': '~/.fzf', 'do': './install --all' }
 Plug 'junegunn/fzf.vim'
-Plug 'ternjs/tern'
 Plug 'moll/vim-node'
+if has('nvim')
+  Plug 'neovim/nvim-lspconfig'
+  Plug 'williamboman/mason.nvim'
+  Plug 'williamboman/mason-lspconfig.nvim'
+  Plug 'coder/claudecode.nvim'
+endif
 Plug 'w0rp/ale'
 Plug 'rizzatti/dash.vim'
 Plug 'scrooloose/nerdtree'
@@ -33,7 +38,6 @@ filetype plugin on
 
 " pangloss/vim-javascript --- {{{
 let g:javascript_plugin_jsdoc = 1
-let g:javascript_plugin_flow = 1
 " }}}
 
 " nathanaelkane/vim-indent-guides --- {{{
@@ -47,11 +51,6 @@ let g:indent_guides_exclude_filetypes = ['help', 'nerdtree']
 " 2. https://commons.wikimedia.org/wiki/File:Xterm_256color_chart.svg
 autocmd VimEnter,Colorscheme * :hi IndentGuidesOdd  ctermbg=237
 autocmd VimEnter,Colorscheme * :hi IndentGuidesEven ctermbg=237
-" }}}
-
-" flowtype/vim-flow --- {{{
-let g:flow#enable = 1
-let g:flow#autoclose = 1
 " }}}
 
 " junegunn/fzf.vimw --- {{{
@@ -115,6 +114,14 @@ let g:ale_fixers = {
 \       'eslint',
 \       'importjs',
 \   ],
+\   'typescript': [
+\       'prettier',
+\       'eslint',
+\   ],
+\   'typescriptreact': [
+\       'prettier',
+\       'eslint',
+\   ],
 \   'css': [
 \       'prettier',
 \   ],
@@ -124,9 +131,38 @@ let g:ale_fixers = {
 \}
 " }}}
 
+" LSP (TypeScript, Swift) --- {{{
+if has('nvim')
+lua <<EOF
+require('mason').setup()
+require('mason-lspconfig').setup({
+  ensure_installed = { 'ts_ls' },
+})
+
+local on_attach = function(_, bufnr)
+  local opts = { buffer = bufnr, silent = true }
+  vim.keymap.set('n', 'gd', vim.lsp.buf.definition, opts)
+  vim.keymap.set('n', 'gy', vim.lsp.buf.type_definition, opts)
+  vim.keymap.set('n', 'gr', vim.lsp.buf.references, opts)
+  vim.keymap.set('n', 'K', vim.lsp.buf.hover, opts)
+  vim.keymap.set('n', '<leader>rn', vim.lsp.buf.rename, opts)
+  vim.keymap.set('n', '<leader>ca', vim.lsp.buf.code_action, opts)
+end
+
+vim.lsp.config('ts_ls', { on_attach = on_attach })
+vim.lsp.enable('ts_ls')
+
+if vim.fn.executable('sourcekit-lsp') == 1 then
+  vim.lsp.config('sourcekit', { on_attach = on_attach })
+  vim.lsp.enable('sourcekit')
+end
+EOF
+endif
+" }}}
+
 " itchyny/lightline.vim --- {{{
 let g:lightline = {
-\ 'colorscheme': 'Dracula',
+\ 'colorscheme': 'catppuccin_mocha',
 \ 'active': {
 \   'left': [['mode', 'paste'], ['filename', 'gitbranch', 'filetype', 'modified']],
 \   'right': [['fileformat', 'fileencoding'], ['lineinfo'], ['percent'], ['readonly', 'linter_warnings', 'linter_errors', 'linter_ok']]
@@ -187,7 +223,9 @@ syntax enable
 set showtabline=0
 set synmaxcol=256
 set ttyfast
-set termencoding=utf-8
+if !has('nvim')
+  set termencoding=utf-8
+endif
 
 set colorcolumn=119
 
@@ -212,8 +250,39 @@ let &t_8f="\<Esc>[38;2;%lu;%lu;%lum"
 let &t_8b="\<Esc>[48;2;%lu;%lu;%lum"
 let &t_Co=256
 set termguicolors
-set background=dark
-colorscheme dracula
+
+" Follow macOS light/dark appearance, same as Claude Code's theme --- {{{
+function! s:SystemAppearanceIsDark() abort
+  if !executable('defaults')
+    return 1
+  endif
+  call system('defaults read -g AppleInterfaceStyle')
+  return v:shell_error == 0
+endfunction
+
+function! s:ApplyTheme() abort
+  if s:SystemAppearanceIsDark()
+    set background=dark
+    silent! colorscheme catppuccin_mocha
+    let g:lightline.colorscheme = 'catppuccin_mocha'
+  else
+    set background=light
+    silent! colorscheme catppuccin_latte
+    let g:lightline.colorscheme = 'catppuccin_latte'
+  endif
+  if exists('#lightline')
+    call lightline#init()
+    call lightline#colorscheme()
+    call lightline#update()
+  endif
+endfunction
+
+call s:ApplyTheme()
+
+augroup dynamic_theme
+  autocmd!
+  autocmd FocusGained * call s:ApplyTheme()
+augroup END
 " }}}
 
 " Mappings --- {{{
@@ -224,8 +293,6 @@ vmap <silent><leader>gb :Gblame<cr>
 nmap <silent><leader>gd :Gdiff<cr>
 nmap <silent><leader>gst :Gstatus<cr>
 nmap <silent><leader>gc :Gcommit<cr>
-nmap <silent><leader>td :TernDef<cr>
-nmap <silent><leader>tr :TernRefs<cr>
 " nmap <silent><leader>nt :tabnew<cr>
 nmap <silent><leader>q :bd<cr>
 nmap <silent>]b :bnext<cr>
@@ -243,7 +310,35 @@ nmap <silent>[q :cprev<cr>
 nnoremap <silent><cr> :nohlsearch<cr><cr>
 
 nmap <silent><C-p> :Files<cr>
+nmap <C-f> :RG<cr>
 nmap ; :Buffers<CR>
+" }}}
+
+" coder/claudecode.nvim --- {{{
+" Defined after mapleader is set above: vim.keymap.set resolves <leader> when
+" the mapping is created, not when it is pressed.
+if has('nvim')
+lua <<EOF
+-- Claude runs in its own tmux window; nvim is only the IDE peer that serves
+-- context and renders diffs. Terminal-management commands are no-ops here.
+require('claudecode').setup({
+  terminal = { provider = 'none' },
+})
+
+local claude_maps = {
+  { 'n', '<leader>ab', '<cmd>ClaudeCodeAdd %<cr>', 'Add current buffer' },
+  { 'v', '<leader>as', '<cmd>ClaudeCodeSend<cr>', 'Send selection to Claude' },
+  { 'n', '<leader>aa', '<cmd>ClaudeCodeDiffAccept<cr>', 'Accept Claude diff' },
+  { 'n', '<leader>ad', '<cmd>ClaudeCodeDiffDeny<cr>', 'Deny Claude diff' },
+  { 'n', '<leader>aq', '<cmd>ClaudeCodeCloseAllDiffs<cr>', 'Close pending diffs' },
+  { 'n', '<leader>a?', '<cmd>ClaudeCodeStatus<cr>', 'Claude connection status' },
+}
+
+for _, map in ipairs(claude_maps) do
+  vim.keymap.set(map[1], map[2], map[3], { silent = true, desc = map[4] })
+end
+EOF
+endif
 " }}}
 
 " Autocommands for filetypes --- {{{
