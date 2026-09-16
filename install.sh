@@ -1,24 +1,39 @@
 #!/usr/bin/env bash
 
-set -eu
+set -euo pipefail
 
-FILES_TO_LINK=$(find . -maxdepth 1 | sed 's/^\.\///g' | grep -Ev "^\\.$|^\\.\\.$|^\\.git$|^install\\.sh$|.+\\.terminfo|^LICENSE$|^README.md$")
+DOTFILES_DIR=$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)
+
+FILES_TO_LINK=$(cd "$DOTFILES_DIR" && find . -maxdepth 1 | sed 's/^\.\///g' | grep -Ev "^\\.$|^\\.\\.$|^\\.git$|^\\.gitignore$|^install\\.sh$|.+\\.terminfo|^LICENSE$|^README.md$")
 
 for FILE in $FILES_TO_LINK
 do
-    if [ -e "$HOME/$FILE" ]; then
-        echo "File $FILE exists, it will be overriden. To cancel press Ctrl-C"
-        read -r
-        rm "$HOME/$FILE"
+    SRC="$DOTFILES_DIR/$FILE"
+    DEST="$HOME/$FILE"
+
+    # Already pointing where we want it.
+    if [ -L "$DEST" ] && [ "$(readlink "$DEST")" = "$SRC" ]; then
+        echo "ok       $FILE"
+        continue
     fi
-    echo ln "$FILE" "$HOME/$FILE"
-    ln "$FILE" "$HOME/$FILE"
+
+    # Anything else in the way gets moved aside, never deleted. Hard links from
+    # the pre-symlink version of this script land here, and their contents may
+    # have drifted from the repo -- keep them so the drift can be diffed.
+    if [ -e "$DEST" ] || [ -L "$DEST" ]; then
+        BACKUP="$DEST.backup-$(date +%Y%m%d-%H%M%S)"
+        mv "$DEST" "$BACKUP"
+        echo "backup   $FILE -> $(basename "$BACKUP")"
+    fi
+
+    ln -s "$SRC" "$DEST"
+    echo "link     $FILE"
 done
 
-TERMINFO_FILES=$(find . -maxdepth 1 | grep -E ".+\\.terminfo")
+TERMINFO_FILES=$(cd "$DOTFILES_DIR" && find . -maxdepth 1 | grep -E ".+\\.terminfo")
 
 for FILE in $TERMINFO_FILES
 do
-    echo tic -x "$FILE"
-    tic -x "$FILE"
+    echo "tic      $FILE"
+    tic -x "$DOTFILES_DIR/$FILE"
 done

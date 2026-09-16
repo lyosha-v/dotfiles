@@ -94,3 +94,18 @@ _execute_if_file_exists "$HOME"/.fzf_zsh
 _execute_if_file_exists "$HOME"/.zshrc_local
 
 [ -f ~/.fzf.zsh ] && source ~/.fzf.zsh
+
+# zsh-autosuggestions --- {{{
+# Ghost-text completion from history as you type; -> or End accepts it.
+# Must be sourced after oh-my-zsh, and before zsh-syntax-highlighting if that
+# ever gets added -- highlighting insists on being last.
+if [ -e /opt/homebrew/share/zsh-autosuggestions/zsh-autosuggestions.zsh ]; then
+    source /opt/homebrew/share/zsh-autosuggestions/zsh-autosuggestions.zsh
+
+    # Fall back to completion when history has nothing to offer.
+    ZSH_AUTOSUGGEST_STRATEGY=(history completion)
+
+    # Accept one word of the suggestion at a time.
+    bindkey '^[f' forward-word
+fi
+# }}}

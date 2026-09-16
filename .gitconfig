@@ -5,6 +5,8 @@
 [commit]
 	gpgsign = true
 [user]
+	name = Lyosha Verkholantcev
+	email = lyosha@granola.so
 	signingkey = ssh-ed25519 AAAAC3NzaC1lZDI1NTE5AAAAIIEzczfvVF132fCr1+p7iUrKqjBGVPUJP/XgLcITS+e/
 
 [alias]
