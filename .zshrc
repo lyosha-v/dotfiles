@@ -31,7 +31,10 @@ ZSH=$HOME/.oh-my-zsh
 # Set name of the theme to load.
 ZSH_THEME="robbyrussell"
 
-plugins=(git sublime npm node brew jsontools)
+# fzf-tab turns every completion into an fzf picker. It has to load after
+# compinit (oh-my-zsh runs it) and before zsh-autosuggestions, which is why it
+# lives here rather than being sourced further down.
+plugins=(git sublime npm node brew jsontools fzf-tab)
 
 source $ZSH/oh-my-zsh.sh
 
@@ -203,6 +206,53 @@ _has delta && retheme
 _has lazygit && alias lg="lazygit"
 
 bindkey "^Q" push-input
+
+# fzf-tab --- {{{
+if [ -d "$ZSH/custom/plugins/fzf-tab" ]; then
+    # fzf-tab drives its own window, so the global --preview from
+    # FZF_DEFAULT_OPTS would apply to completions it makes no sense for.
+    zstyle ':fzf-tab:*' use-fzf-default-opts no
+    zstyle ':completion:*' menu no
+    zstyle ':fzf-tab:*' fzf-flags --height=60% --border
+
+    # Preview what is being completed, per completion type.
+    if _has eza; then
+        zstyle ':fzf-tab:complete:cd:*' fzf-preview 'eza -1 --color=always $realpath'
+        zstyle ':fzf-tab:complete:z:*'  fzf-preview 'eza -1 --color=always $realpath'
+    fi
+    if _has bat; then
+        zstyle ':fzf-tab:complete:*:*' fzf-preview \
+            '[ -d $realpath ] && ls -1 $realpath || bat --color=always --style=numbers $realpath 2>/dev/null'
+    fi
+    zstyle ':fzf-tab:complete:(kill|ps):argument-rest' fzf-preview 'ps -p $word -o comm='
+fi
+# }}}
+
+# git + fzf --- {{{
+# Own statement, outside any block: oh-my-zsh's git plugin aliases both names,
+# and defining a function over an existing alias is a parse error that takes
+# the rest of this file with it. See the eza block above for the same problem.
+unalias gco gsh 2>/dev/null
+
+# gco: pick a branch, local or remote, most recently committed first.
+gco() {
+    local branch
+    branch=$(git branch -a --sort=-committerdate \
+        --format='%(refname:short)' 2>/dev/null \
+        | grep -v '^origin/HEAD$' \
+        | sed 's#^origin/##' | awk '!seen[$0]++' \
+        | fzf --height 40% --preview 'git log --oneline --color=always -20 {}') || return
+    [ -n "$branch" ] && git checkout "$branch"
+}
+
+# gsh: pick a commit and show it.
+gsh() {
+    local sha
+    sha=$(git log --oneline --color=always -200 2>/dev/null \
+        | fzf --ansi --height 60% --preview 'git show --color=always --stat {1}') || return
+    [ -n "$sha" ] && git show "${sha%% *}"
+}
+# }}}
 
 _execute_if_file_exists "$HOME"/.fzf_zsh
 _execute_if_file_exists "$HOME"/.zshrc_local

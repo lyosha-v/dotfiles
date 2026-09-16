@@ -16,7 +16,8 @@ USAGE
 # Files in the repo root that are repo infrastructure, not dotfiles to link.
 is_not_a_dotfile() {
     case "$1" in
-        .|..|.git|.gitignore|install.sh|LICENSE|README.md|*.terminfo) return 0 ;;
+        .|..|.git|.gitignore|LICENSE|README.md) return 0 ;;
+        install.sh|bootstrap.sh|Brewfile|Brewfile.lock.json|*.terminfo) return 0 ;;
         *) return 1 ;;
     esac
 }

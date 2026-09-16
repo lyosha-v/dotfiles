@@ -5,6 +5,9 @@ filetype off
 call plug#begin()
 Plug 'tpope/vim-sensible'
 Plug 'tmux-plugins/vim-tmux-focus-events'
+" The vim half of the tmux pane navigation. Without this, C-h/j/k/l hands off
+" from tmux into vim but not back out again.
+Plug 'christoomey/vim-tmux-navigator'
 Plug 'pangloss/vim-javascript'
 Plug 'nathanaelkane/vim-indent-guides'
 Plug 'airblade/vim-gitgutter'
@@ -24,7 +27,6 @@ if has('nvim')
   Plug 'coder/claudecode.nvim'
 endif
 Plug 'w0rp/ale'
-Plug 'rizzatti/dash.vim'
 Plug 'scrooloose/nerdtree'
 Plug 'tpope/vim-fugitive'
 Plug 'itchyny/lightline.vim'
@@ -103,6 +105,9 @@ autocmd User Node
 " }}}
 
 " w0rp/ale --- {{{
+" ALE is kept for fixing (prettier/eslint/importjs) but not for diagnostics:
+" nvim-lspconfig already reports those, and running both doubled every message.
+let g:ale_disable_lsp = 1
 let g:ale_fix_on_save = 0
 let g:ale_lint_on_text_changed = 'never'
 let g:ale_javascript_prettier_use_local_config = 1
@@ -299,14 +304,14 @@ nmap <silent><leader>gc :Gcommit<cr>
 nmap <silent><leader>q :bd<cr>
 nmap <silent>]b :bnext<cr>
 nmap <silent>[b :bprev<cr>
-nmap <silent>' :!jest %<cr>
+" Was mapped to ' , which shadowed jumping to a mark.
+nmap <silent><leader>t :!npx jest %<cr>
 
 nmap <silent><leader>f :NERDTreeFind<cr>
 " let g:NERDTreeWinSize=50
 
-nmap <silent><leader>h :Dash<cr>
-
-nmap <silent>q :cclose<cr>
+" Was mapped to q , which shadowed macro recording.
+nmap <silent><leader>c :cclose<cr>
 nmap <silent>]q :cnext<cr>
 nmap <silent>[q :cprev<cr>
 nnoremap <silent><cr> :nohlsearch<cr><cr>

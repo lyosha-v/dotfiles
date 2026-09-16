@@ -145,6 +145,8 @@ anything work-specific or secret in them:
 | `ls` `ll` `la` `lt` | eza — plain, long+git, long+hidden, tree |
 | `cat` / `bat` | `cat` is left alone; `bat` adds highlighting and line numbers |
 | `lg` | lazygit |
+| `gco` | pick a branch with fzf and check it out |
+| `gsh` | pick a commit with fzf and show it |
 | `tn` | new tmux session named after the current directory |
 | `ta` | attach to a session, detaching other clients |
 | `tl` | list sessions |
@@ -160,6 +162,7 @@ anything work-specific or secret in them:
 | `→` | accept the autosuggestion |
 | `M-f` | accept one word of it |
 | `C-q` | stash the current line, run something else, get it back |
+| `TAB` | every completion is an fzf picker (fzf-tab), with a preview |
 
 Up-arrow is deliberately left as ordinary zsh prefix search rather than handed
 to atuin, so the two kinds of recall stay distinct.
@@ -174,10 +177,21 @@ Prefix is **`C-a`** (not `C-b`). Send a literal `C-a` with `C-a C-a`.
 
 | | |
 | --- | --- |
-| `C-a h/j/k/l` | move between panes |
+| `C-h/j/k/l` | move between panes **and vim splits** interchangeably |
+| `C-a |` / `C-a -` | split vertically / horizontally, in the current directory |
+| `C-a c` | new window, in the current directory |
+| `C-a r` | reload `.tmux.conf` |
 | `C-a [` | copy mode — vi keys, `v` select, `y` yank |
-| `C-a I` | install plugins after editing `.tmux.conf` |
+| `C-a I` | install plugins after adding one to `.tmux.conf` |
 | `C-a f` | fpp — pick a file path off the screen and open it |
+
+`C-h/j/k/l` needs no prefix and crosses the vim/tmux boundary, via
+[vim-tmux-navigator](https://github.com/christoomey/vim-tmux-navigator) on both
+sides. Windows and panes number from 1 and renumber when one closes.
+
+`focus-events on` is what lets `.vimrc`'s `FocusGained` hook fire inside tmux,
+so vim notices a light/dark switch. Without it that hook, and the
+vim-tmux-focus-events plugin, do nothing.
 
 Mouse mode is on: click panes, drag borders, scroll natively.
 
@@ -197,6 +211,7 @@ behind `has('nvim')`.
 | `<leader>f` | reveal the current file in NERDTree |
 | `[b` / `]b` | previous / next buffer |
 | `[q` / `]q` | previous / next quickfix entry |
+| `<leader>c` | close the quickfix window |
 | `<CR>` | clear search highlight |
 
 In any fzf picker, `C-t` opens in a tab, `C-x` splits, `C-v` vsplits.
@@ -208,6 +223,7 @@ In any fzf picker, `C-t` opens in a tab, `C-x` splits, `C-v` vsplits.
 | `[e` / `]e` | previous / next ALE problem |
 | `ff` | run ALE fixers (prettier, eslint, importjs) |
 | `ar` | restart ALE |
+| `<leader>t` | run jest on the current file |
 | `gcc` / `gc{motion}` | toggle comments (tComment) |
 
 **LSP** (neovim only — TypeScript via `ts_ls`, Swift via `sourcekit` when present)
@@ -374,11 +390,6 @@ aliases.
 creeps up, profile by bracketing `.zshrc` with
 `zmodload zsh/zprof` on the first line and `zprof` on the last, then starting a
 shell.
-
-**`q` and `'` don't do what vim says they do.** `.vimrc` maps `q` to `:cclose`
-and `'` to `:!jest %`, which shadows macro recording and mark-jumping
-respectively. Deliberate, but surprising if you sit down at this config
-expecting stock vim.
 
 **Colors look wrong over ssh or in tmux.** The remote end needs the
 `tmux-256color` entry; `install.sh` compiles it locally with `tic -x`.

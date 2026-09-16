@@ -11,6 +11,9 @@ brew "zsh-syntax-highlighting"  # colors the command line as you type
 brew "atuin"                    # searchable shell history, replaces C-r
 brew "zoxide"                   # frecency-based `z`, replaces the z.sh script
 
+# fzf-tab is cloned by bootstrap.sh into ~/.oh-my-zsh/custom/plugins, since it
+# is an oh-my-zsh plugin rather than a formula.
+
 # ── Editor / multiplexer ─────────────────────────────────────────────────────
 brew "neovim"                   # `vim` and `vi` are aliased to this
 brew "tmux"

@@ -61,6 +61,16 @@ else
         "$(curl -fsSL https://raw.githubusercontent.com/ohmyzsh/ohmyzsh/master/tools/install.sh)"
 fi
 
+# ── oh-my-zsh custom plugins ─────────────────────────────────────────────────
+# Not a formula, so brew bundle cannot do it.
+step "fzf-tab"
+FZF_TAB="$HOME/.oh-my-zsh/custom/plugins/fzf-tab"
+if [ -d "$FZF_TAB" ]; then
+    skip "$FZF_TAB"
+else
+    git clone --quiet --depth 1 https://github.com/Aloxaf/fzf-tab "$FZF_TAB"
+fi
+
 # ── Dotfiles ─────────────────────────────────────────────────────────────────
 step "Linking dotfiles"
 "$DOTFILES_DIR/install.sh"
