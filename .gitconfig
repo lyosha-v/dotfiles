@@ -1,13 +1,16 @@
+[user]
+	name = Lyosha Verkholantcev
+	email = lyosha@granola.so
+	signingkey = ssh-ed25519 AAAAC3NzaC1lZDI1NTE5AAAAIIEzczfvVF132fCr1+p7iUrKqjBGVPUJP/XgLcITS+e/
+
+# Commit signing through the 1Password SSH agent. Every commit prompts for
+# approval, so anything scripted needs `-c commit.gpgsign=false`.
 [gpg]
 	format = ssh
 [gpg "ssh"]
 	program = /Applications/1Password.app/Contents/MacOS/op-ssh-sign
 [commit]
 	gpgsign = true
-[user]
-	name = Lyosha Verkholantcev
-	email = lyosha@granola.so
-	signingkey = ssh-ed25519 AAAAC3NzaC1lZDI1NTE5AAAAIIEzczfvVF132fCr1+p7iUrKqjBGVPUJP/XgLcITS+e/
 
 [alias]
 	lg = "log --graph --format='format:%w(80)%Cgreen%h%Creset %Cred%d%Creset%n%s%n%Cgreen%an%Creset (%ar)%n'"
@@ -17,17 +20,54 @@
 	br = branch
 	dt = difftool
 
+[core]
+	editor = nvim
+	pager = delta
+
+[interactive]
+	diffFilter = delta --color-only
+
+[delta]
+	navigate = true
+	line-numbers = true
+	hyperlinks = true
+	# Follows the terminal background, same as bat, vim and Ghostty do.
+	detect-dark-light = auto
+	syntax-theme = Catppuccin Mocha
+
 [diff]
 	tool = vimdiff
+	# Noticeably more readable than the default on refactors.
+	algorithm = histogram
+	# Distinguishes moved lines from genuinely added and removed ones.
+	colorMoved = default
 
-[color]
-	ui = auto
+[merge]
+	tool = vimdiff
+	# Shows the common ancestor alongside both sides, which makes a conflict far
+	# easier to reason about than the default two-way view.
+	conflictStyle = zdiff3
 
-[core]
-	editor = vim
+[rerere]
+	# Records how a conflict was resolved and replays it when the same one comes
+	# back, which it does constantly over a long-lived rebase.
+	enabled = true
+
+[rebase]
+	autosquash = true
+	autostash = true
+
+[fetch]
+	prune = true
+
+[pull]
+	ff = only
 
 [push]
 	default = current
 
-[merge]
-	tool = vimdiff
+[init]
+	defaultBranch = main
+
+[color]
+	ui = auto

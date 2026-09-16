@@ -10,6 +10,7 @@
 zsh + tmux + neovim, on macOS / Apple Silicon.
 
 - [Installation](#installation)
+  - [What bootstrap.sh does](#what-bootstrapsh-does)
 - [How the linking works](#how-the-linking-works)
 - [What's tracked](#whats-tracked)
 - [Daily use](#daily-use)
@@ -24,37 +25,45 @@ zsh + tmux + neovim, on macOS / Apple Silicon.
 
 ## Installation
 
+On a fresh machine:
+
 ```bash
 git clone git@github.com:lyosha-v/dotfiles.git
 cd dotfiles
-./install.sh
+./bootstrap.sh
 ```
 
-Then open a new terminal.
+Then open a new terminal. Two manual steps are left, because neither can be
+scripted: sign in to 1Password and turn on its SSH agent (commit signing needs
+it), and run `gh auth login`.
 
-Clone it wherever you like — `install.sh` resolves its own location. The
-symlinks it creates do point at wherever the repo sat when you ran it, so
-moving the repo afterwards means re-running the script.
+Clone it wherever you like — the scripts resolve their own location. The
+symlinks they create do point at wherever the repo sat when you ran them, so
+moving the repo afterwards means re-running `./install.sh`.
 
-### Prerequisites
+### What bootstrap.sh does
 
-```bash
-# Homebrew itself: https://brew.sh
-brew install neovim tmux fzf ripgrep zsh-autosuggestions nvm gh
-```
+Every step checks before it acts and skips what is already done, so it is also
+the "bring this machine up to date" script, not just a first-run one.
 
-Plus [oh-my-zsh](https://ohmyz.sh), which `.zshrc` sources from `~/.oh-my-zsh`:
-
-```bash
-sh -c "$(curl -fsSL https://raw.githubusercontent.com/ohmyzsh/ohmyzsh/master/tools/install.sh)"
-```
-
-After the first launch, two plugin managers need a one-time nudge:
-
-| Manager | Bootstrap |
+| Step | |
 | --- | --- |
-| [vim-plug](https://github.com/junegunn/vim-plug) (vim) | auto-installs; then run `:PlugInstall` |
-| [tpm](https://github.com/tmux-plugins/tpm) (tmux) | auto-clones; then press `C-a I` inside tmux |
+| Xcode CLT | Homebrew needs them, and its installer otherwise blocks on a GUI prompt |
+| Homebrew | installs it, then puts it on `$PATH` for the rest of the run |
+| `Brewfile` | `brew bundle` — every package this setup uses, listed in one file |
+| [oh-my-zsh](https://ohmyz.sh) | with `KEEP_ZSHRC=yes`, so it can't clobber the `.zshrc` about to be linked |
+| `install.sh` | links the dotfiles |
+| node | `nvm install --lts` — `.zshrc` lazy-loads nvm but installs nothing |
+| [vim-plug](https://github.com/junegunn/vim-plug) | `nvim --headless +PlugInstall` |
+| [tpm](https://github.com/tmux-plugins/tpm) | clones it and installs the tmux plugins |
+| history | imports existing `~/.zsh_history` into atuin and `~/.z` into zoxide |
+
+To install just the packages, without touching anything else:
+
+```bash
+brew bundle install --file=Brewfile
+brew bundle check  --file=Brewfile --verbose   # what's missing or outdated
+```
 
 ## How the linking works
 
@@ -97,12 +106,14 @@ tic      ./tmux-256color.terminfo
 
 | File | Contents |
 | --- | --- |
-| `.zshrc` | oh-my-zsh, fzf + ripgrep, tmux helpers, autosuggestions |
+| `.zshrc` | oh-my-zsh, lazy nvm, fzf, zoxide, atuin, eza, bat, autosuggestions, highlighting |
 | `.zprofile` | Homebrew `shellenv`, `$PATH` de-duplication, Docker |
 | `.vimrc` | plugins, LSP, ALE, catppuccin, mappings — read by both vim and nvim |
-| `.gitconfig` | identity, 1Password SSH signing, aliases |
+| `.gitconfig` | identity, 1Password SSH signing, delta, aliases |
 | `.tmux.conf` | `C-a` prefix, vi keys, tpm plugins |
 | `.bashrc` | fzf only; bash is not the daily shell |
+| `Brewfile` | every package the setup needs |
+| `bootstrap.sh` | fresh-machine setup; `install.sh` links, this installs |
 | `*.terminfo` | italic-capable terminal descriptions, compiled by `install.sh` |
 
 **Not yet tracked**, though they are part of the setup:
@@ -129,25 +140,33 @@ anything work-specific or secret in them:
 
 | | |
 | --- | --- |
+| `z <fragment>` | jump to a frecently-visited directory (zoxide) |
+| `zi` | same, but pick from a list |
+| `ls` `ll` `la` `lt` | eza — plain, long+git, long+hidden, tree |
+| `cat` / `bat` | `cat` is left alone; `bat` adds highlighting and line numbers |
+| `lg` | lazygit |
 | `tn` | new tmux session named after the current directory |
 | `ta` | attach to a session, detaching other clients |
 | `tl` | list sessions |
 | `cdr` | cd to the repo root |
-| `gdmn` | files changed against `master` |
-| `z <part-of-path>` | jump to a frecently-used directory |
+| `gdmn` | files changed against the repo's default branch |
 | `vim` / `vi` | both aliased to `nvim` |
 
 | Key | |
 | --- | --- |
-| `C-r` | fuzzy history search |
+| `C-r` | history search (atuin) — fuzzy, deduplicated, scoped by directory |
 | `C-t` | fuzzy file picker into the current command |
 | `M-c` | fuzzy cd |
 | `→` | accept the autosuggestion |
 | `M-f` | accept one word of it |
 | `C-q` | stash the current line, run something else, get it back |
 
+Up-arrow is deliberately left as ordinary zsh prefix search rather than handed
+to atuin, so the two kinds of recall stay distinct.
+
 `$FZF_DEFAULT_COMMAND` is `rg --files --hidden`, so pickers see dotfiles and
-respect `.gitignore`.
+respect `.gitignore`; `M-c` uses `fd --type d` because it needs directories.
+Previews render through `bat`.
 
 ### tmux
 
@@ -239,9 +258,25 @@ clicking back into vim is enough; no restart.
 | `git br` | branch |
 | `git lg` | graph log, wrapped to 80 columns |
 | `git dt` | difftool (vimdiff) |
+| `lg` (shell) | lazygit — staging hunks interactively beats `git add -p` |
 
-`push.default = current`, so `git push` pushes the current branch to its
-same-named remote branch without extra arguments.
+Diffs page through [delta](https://github.com/dandavison/delta): syntax
+highlighted, with line numbers, moved lines distinguished from added and removed
+ones, and `n`/`N` to jump between files. It follows the terminal background, so
+it matches bat, vim and Ghostty.
+
+Behaviour worth knowing, since it differs from stock git:
+
+| | |
+| --- | --- |
+| `merge.conflictStyle = zdiff3` | conflicts show the common ancestor, not just both sides |
+| `rerere.enabled` | a conflict resolved once is replayed automatically next time |
+| `rebase.autostash` | rebasing with a dirty tree stashes and restores by itself |
+| `rebase.autosquash` | `fixup!` commits are folded in without `-i` fiddling |
+| `fetch.prune` | deleted remote branches stop lingering locally |
+| `pull.ff = only` | a pull that isn't fast-forward stops instead of merging |
+| `push.default = current` | `git push` needs no arguments |
+| `diff.algorithm = histogram` | more readable diffs on refactors |
 
 Commits are SSH-signed through the 1Password agent
 (`gpg.ssh.program = op-ssh-sign`, `commit.gpgsign = true`), which means **every
@@ -280,7 +315,9 @@ brew install stow
 
 - `theme = light:Catppuccin Latte,dark:Catppuccin Mocha` — follows macOS, and
   matches what `.vimrc` does, so the two never disagree
-- JetBrains Mono 13
+- JetBrains Mono 13 — installed by the `Brewfile` as `font-jetbrains-mono`.
+  Ghostty falls back silently when a configured font is missing, so a missing
+  cask looks like "the config didn't apply" rather than an error.
 - `⌘D` / `⌘⇧D` split, `⌘h/j/k/l` move, `⌘⇧↵` zoom
 - `macos-option-as-alt = true`, which is what makes `M-c` and `M-f` above work
 
@@ -303,9 +340,16 @@ entry:
 export PATH="/opt/homebrew/opt/curl/bin:$PATH"
 ```
 
-**Slow shell startup.** `.zshrc` loads nvm eagerly, which dominates the ~0.4s.
-To profile, bracket the file with `zmodload zsh/zprof` on the first line and
-`zprof` on the last, then start a shell.
+**`ls` hangs.** `ls`/`ll`/`la`/`lt` are shell *functions*, not aliases, because
+eza 0.23.5 hangs forever when run with no path argument — `eza .` returns
+instantly, bare `eza` never returns. The functions pass an explicit `.` when
+given no argument. If a later eza fixes this, they can go back to being plain
+aliases.
+
+**Slow shell startup.** nvm is lazy-loaded, so this should sit near 0.1s. If it
+creeps up, profile by bracketing `.zshrc` with
+`zmodload zsh/zprof` on the first line and `zprof` on the last, then starting a
+shell.
 
 **`q` and `'` don't do what vim says they do.** `.vimrc` maps `q` to `:cclose`
 and `'` to `:!jest %`, which shadows macro recording and mark-jumping

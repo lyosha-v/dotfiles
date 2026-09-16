@@ -12,7 +12,9 @@ Plug 'catppuccin/vim', { 'as': 'catppuccin' }
 Plug 'editorconfig/editorconfig-vim'
 Plug 'leafgarland/typescript-vim'
 Plug 'heavenshell/vim-jsdoc'
-Plug 'junegunn/fzf', { 'dir': '~/.fzf', 'do': './install --all' }
+" Use the Homebrew fzf. The 'dir'/'do' form maintained a second copy in
+" ~/.fzf whose shell files .zshrc then sourced on top of Homebrew's.
+Plug 'junegunn/fzf'
 Plug 'junegunn/fzf.vim'
 Plug 'moll/vim-node'
 if has('nvim')
