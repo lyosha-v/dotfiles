@@ -23,6 +23,8 @@
 [core]
 	editor = nvim
 	pager = delta
+	fsmonitor = true
+	untrackedCache = true
 
 [interactive]
 	diffFilter = delta --color-only
@@ -77,6 +79,7 @@
 
 [push]
 	default = current
+	autoSetupRemote = true
 
 [init]
 	defaultBranch = main
