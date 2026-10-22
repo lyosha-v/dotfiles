@@ -145,7 +145,10 @@ lua <<EOF
 -- never inherit. Language servers are spawned with no shell and start with
 -- `#!/usr/bin/env node`, so without this they exit 127 and on_attach — and
 -- every mapping below — silently never runs.
-local nvm_default = vim.fn.readfile(vim.fn.expand('~/.nvm/alias/default'))[1]
+-- readfile() throws on a missing file, which would abort this whole block, and
+-- there is no default alias until `nvm alias default` has been run.
+local nvm_alias = vim.fn.expand('~/.nvm/alias/default')
+local nvm_default = vim.fn.filereadable(nvm_alias) == 1 and vim.fn.readfile(nvm_alias)[1]
 if nvm_default then
   local nvm_bin = vim.fn.expand('~/.nvm/versions/node/v' .. nvm_default .. '/bin')
   if vim.fn.isdirectory(nvm_bin) == 1 then
