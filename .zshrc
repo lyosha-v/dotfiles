@@ -10,8 +10,8 @@ if [ -s "$NVM_PREFIX/nvm.sh" ] && [ ! "$(whence -w __init_nvm)" = function ]; th
     [ -s "$NVM_PREFIX/etc/bash_completion.d/nvm" ] && . "$NVM_PREFIX/etc/bash_completion.d/nvm"
     declare -a __node_commands=('nvm' 'node' 'npm' 'npx' 'pnpm' 'yarn')
     function __init_nvm() {
-        for i in "${__node_commands[@]}"; do unalias $i 2>/dev/null; done
-        source "$NVM_PREFIX/nvm.sh"
+        for i in nvm node npm npx pnpm yarn; do unalias $i 2>/dev/null; done
+        source "$NVM_DIR/nvm.sh"
         unset __node_commands
         unset -f __init_nvm
     }
@@ -49,6 +49,73 @@ function _update_rprompt() {
 
 function _new_tmux_from_dir_name {
     tmux new-session -As `basename $PWD | sed s/\\\\./_/g`
+}
+
+# Opens a tmux session for a workspace directory and starts Claude Code in it,
+# the way _new_tmux_from_dir_name opens a bare one for $PWD. The session is
+# named after the directory, so running this again re-attaches to the session
+# already there rather than starting a second claude. Without an argument it
+# uses $PWD; anything after the directory is passed through to claude.
+#
+# A --worktree/-w passed through to claude names the session after the worktree
+# instead, since that is the directory the session will actually be working in.
+function _new_tmux_claude_workspace {
+    # The directory is optional and defaults to $PWD, so a leading argument
+    # only counts as one when it is not a flag; otherwise `tc --worktree foo`
+    # from inside the repo would take --worktree for the directory. A directory
+    # whose name really does start with a dash needs a ./ in front.
+    local dir=$PWD
+    if [[ -n $1 && $1 != -* ]]; then
+        dir=$1
+        shift
+    fi
+    if [[ ! -d $dir ]]; then
+        print -u2 "${0}: not a directory: $dir"
+        return 1
+    fi
+    dir=${dir:A}
+
+    # claude puts a worktree at <repo>/.claude/worktrees/<name>; the name is
+    # worth more as a session name than the repo's, which every worktree of the
+    # repo would otherwise share. A bare --worktree lets claude pick the name,
+    # which we cannot know here, so the repo name stays.
+    local wt="" arg
+    local -i i
+    for (( i = 1; i <= $#; i++ )); do
+        arg=$@[i]
+        case $arg in
+            --worktree=*|-w=*) wt=${arg#*=} ;;
+            --worktree|-w)
+                [[ -n $@[i+1] && $@[i+1] != -* ]] && wt=$@[i+1] ;;
+        esac
+    done
+
+    # tmux reads a dot in a session name as a window/pane separator.
+    local name=${${wt:-${dir:t}}//./_}
+
+    if ! tmux has-session -t "=$name" 2>/dev/null; then
+        # claude runs as the window's own command rather than being typed in
+        # with send-keys, which races the shell's startup and loses the keys.
+        # The trailing exec leaves a shell behind once claude exits, in the
+        # worktree it created if there was one.
+        #
+        # The wrapper shell is interactive (-i) so that it hands the terminal to
+        # claude: tmux's #{pane_current_path} is the directory of the terminal's
+        # foreground process, and a non-interactive wrapper keeps that for
+        # itself, so new panes would open in the repo rather than the worktree
+        # claude moved into. -f skips the rc files an interactive shell loads.
+        local after="exec ${SHELL:-/bin/zsh} -l"
+        [[ -n $wt ]] && after="cd ${(q)dir}/.claude/worktrees/${(q)wt} 2>/dev/null; $after"
+        local cmd="claude ${(j: :)${(q)@}}; $after"
+        tmux new-session -d -s $name -c $dir "exec zsh -fic ${(q)cmd}"
+    fi
+
+    # Already inside tmux, attach would refuse to nest.
+    if [[ -n $TMUX ]]; then
+        tmux switch-client -t "=$name"
+    else
+        tmux attach -t "=$name"
+    fi
 }
 
 function _has() {
@@ -166,6 +233,7 @@ fi
 
 alias tl="tmux ls"
 alias tn="_new_tmux_from_dir_name"
+alias tc="_new_tmux_claude_workspace"
 alias ta="tmux attach -d"
 
 # A function, not an alias: in an alias the $(...) is expanded once, when the
