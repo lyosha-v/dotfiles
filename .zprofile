@@ -1,3 +1,7 @@
+# The following lines were added by Docker Desktop to add commands to your PATH.
+export PATH="$PATH:$HOME/.docker/bin"
+# End of Docker Desktop section.
+
 # Homebrew.
 #
 # Homebrew installs itself by dropping /opt/homebrew/bin into /etc/paths.d, but
@@ -7,9 +11,9 @@
 # /etc/zprofile and prepends, which is what puts brew back in front.
 eval "$(/opt/homebrew/bin/brew shellenv)"
 
+# Rust (rustup). Installed with --no-modify-path, so it is wired up here instead.
+[[ -f "$HOME/.cargo/env" ]] && . "$HOME/.cargo/env"
+
 # Keep $PATH free of duplicate entries, whatever order things get added in.
 typeset -U path PATH
 
-# The following lines were added by Docker Desktop to add commands to your PATH.
-export PATH="$PATH:$HOME/.docker/bin"
-# End of Docker Desktop section.
