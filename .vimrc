@@ -141,6 +141,18 @@ let g:ale_fixers = {
 " LSP (TypeScript, Swift) --- {{{
 if has('nvim')
 lua <<EOF
+-- nvm exposes `node` only as a lazy-loading shell alias, which child processes
+-- never inherit. Language servers are spawned with no shell and start with
+-- `#!/usr/bin/env node`, so without this they exit 127 and on_attach — and
+-- every mapping below — silently never runs.
+local nvm_default = vim.fn.readfile(vim.fn.expand('~/.nvm/alias/default'))[1]
+if nvm_default then
+  local nvm_bin = vim.fn.expand('~/.nvm/versions/node/v' .. nvm_default .. '/bin')
+  if vim.fn.isdirectory(nvm_bin) == 1 then
+    vim.env.PATH = nvm_bin .. ':' .. vim.env.PATH
+  end
+end
+
 require('mason').setup()
 require('mason-lspconfig').setup({
   ensure_installed = { 'ts_ls' },
@@ -156,8 +168,80 @@ local on_attach = function(_, bufnr)
   vim.keymap.set('n', '<leader>ca', vim.lsp.buf.code_action, opts)
 end
 
-vim.lsp.config('ts_ls', { on_attach = on_attach })
+-- TypeScript 7 is the native (Go) compiler and ships no tsserver.js. Given such
+-- a project, typescript-language-server does not fail loudly: it falls back to
+-- its own bundled TypeScript 6, which cannot resolve the project, so
+-- go-to-definition lands on the import statement instead of the definition.
+-- TS 7 serves LSP itself, so prefer the project's own binary when there is one.
+local ts_native_cache = {}
+
+-- Walks up from the file, not from the project root: in a monorepo the nearest
+-- package.json is often a workspace member with no node_modules of its own.
+local function typescript_launcher(bufnr)
+  local start = vim.fs.dirname(vim.api.nvim_buf_get_name(bufnr))
+  if start == '' then return nil end
+  local candidate = start
+  while candidate and candidate ~= '' do
+    local launcher = candidate .. '/node_modules/typescript/lib/getExePath.js'
+    if vim.fn.filereadable(launcher) == 1 then return launcher end
+    local parent = vim.fs.dirname(candidate)
+    if parent == candidate then break end
+    candidate = parent
+  end
+  return nil
+end
+
+local function typescript_native_exe(bufnr)
+  local launcher = typescript_launcher(bufnr)
+  if not launcher then return nil end
+  if ts_native_cache[launcher] == nil then
+    -- Ask TypeScript where its platform binary is rather than guessing, since
+    -- the path is version-stamped and package-manager specific.
+    local out = vim.trim(vim.fn.system({
+      'node',
+      '-e',
+      'import(process.argv[1]).then(m => process.stdout.write(m.default()))',
+      launcher,
+    }))
+    local ok = vim.v.shell_error == 0 and out ~= '' and vim.fn.executable(out) == 1
+    ts_native_cache[launcher] = ok and out or false
+  end
+  return ts_native_cache[launcher] or nil
+end
+
+local ts_root_markers = { 'tsconfig.json', 'jsconfig.json', 'package.json' }
+
+vim.lsp.config('ts_ls', {
+  on_attach = on_attach,
+  -- Stand aside in TypeScript 7 projects; tsgo below serves those.
+  root_dir = function(bufnr, on_dir)
+    local root = vim.fs.root(bufnr, ts_root_markers)
+    if not root or typescript_native_exe(bufnr) then return end
+    on_dir(root)
+  end,
+})
 vim.lsp.enable('ts_ls')
+
+vim.api.nvim_create_autocmd('FileType', {
+  pattern = {
+    'javascript',
+    'javascriptreact',
+    'typescript',
+    'typescriptreact',
+  },
+  callback = function(args)
+    local exe = typescript_native_exe(args.buf)
+    if not exe then return end
+    local root = vim.fs.root(args.buf, ts_root_markers)
+    if not root then return end
+    vim.lsp.start({
+      name = 'tsgo',
+      cmd = { exe, '--lsp', '--stdio' },
+      root_dir = root,
+      on_attach = on_attach,
+    })
+  end,
+})
 
 if vim.fn.executable('sourcekit-lsp') == 1 then
   vim.lsp.config('sourcekit', { on_attach = on_attach })
